@@ -1,0 +1,208 @@
+package Corte2;
+
+import java.util.*;
+
+// Clase que representa la ficha completa del Pokémon
+class PokemonInfo {
+    double altura;
+    double peso;
+    String categoria;
+    String habilidad;
+    String genero;
+    List<String> tipos = new ArrayList<>();
+    List<String> debilidades = new ArrayList<>();
+    String dato;
+
+    public void ingresarDatos(Scanner scanner) {
+        System.out.print("Altura (m): ");
+        altura = scanner.nextDouble();
+        System.out.print("Peso (kg): ");
+        peso = scanner.nextDouble();
+        scanner.nextLine(); // Limpiar buffer
+
+        System.out.print("Categoría: ");
+        categoria = scanner.nextLine();
+
+        System.out.print("Habilidad: ");
+        habilidad = scanner.nextLine();
+
+        System.out.print("Género (♂, ♀ o Ambos): ");
+        genero = scanner.nextLine();
+
+        System.out.print("¿Cuántos tipos tiene?: ");
+        int nTipos = scanner.nextInt();
+        scanner.nextLine();
+        for (int i = 0; i < nTipos; i++) {
+            System.out.print("Tipo #" + (i + 1) + ": ");
+            tipos.add(scanner.nextLine());
+        }
+
+        System.out.print("¿Cuántas debilidades tiene?: ");
+        int nDeb = scanner.nextInt();
+        scanner.nextLine();
+        for (int i = 0; i < nDeb; i++) {
+            System.out.print("Debilidad #" + (i + 1) + ": ");
+            debilidades.add(scanner.nextLine());
+        }
+
+        System.out.print("Dato curioso: ");
+        dato = scanner.nextLine();
+    }
+
+    public void mostrarFicha() {
+        System.out.println("  Altura: " + altura + " m");
+        System.out.println("  Peso: " + peso + " kg");
+        System.out.println("  Categoría: " + categoria);
+        System.out.println("  Habilidad: " + habilidad);
+        System.out.println("  Género: " + genero);
+
+        System.out.println("  Tipo(s): " + String.join(", ", tipos));
+        System.out.println("  Debilidad(es): " + String.join(", ", debilidades));
+        System.out.println("  Dato curioso: " + dato);
+    }
+}
+
+// Nodo de la lista enlazada
+class Pokemon {
+    String name;
+    int level;
+    PokemonInfo info;
+    Pokemon next;
+
+    public Pokemon(String name, int level, PokemonInfo info) {
+        this.name = name;
+        this.level = level;
+        this.info = info;
+        this.next = null;
+    }
+}
+
+class Pokedex {
+    private Pokemon head;
+
+    public void addPokemon(String name, int level, PokemonInfo info) {
+        if (searchPokemon(name)) {
+            System.out.println("El Pokémon " + name + " ya está en la Pokedex.");
+            return;
+        }
+
+        Pokemon newPokemon = new Pokemon(name, level, info);
+        if (head == null) {
+            head = newPokemon;
+        } else {
+            Pokemon temp = head;
+            while (temp.next != null) {
+                temp = temp.next;
+            }
+            temp.next = newPokemon;
+        }
+        System.out.println("Pokémon " + name + " agregado correctamente.");
+    }
+
+    public void removePokemon(String name) {
+        Pokemon temp = head, prev = null;
+        if (temp != null && temp.name.equalsIgnoreCase(name)) {
+            head = temp.next;
+            System.out.println("Eliminado: " + name);
+            return;
+        }
+        while (temp != null && !temp.name.equalsIgnoreCase(name)) {
+            prev = temp;
+            temp = temp.next;
+        }
+        if (temp == null) {
+            System.out.println("No se encontró el Pokémon: " + name);
+            return;
+        }
+        prev.next = temp.next;
+        System.out.println("Eliminado: " + name);
+    }
+
+    public boolean searchPokemon(String name) {
+        Pokemon temp = head;
+        while (temp != null) {
+            if (temp.name.equalsIgnoreCase(name)) return true;
+            temp = temp.next;
+        }
+        return false;
+    }
+
+    public void showPokedex() {
+        if (head == null) {
+            System.out.println("La Pokedex está vacía.");
+            return;
+        }
+        Pokemon temp = head;
+        System.out.println("\n--- Pokedex ---");
+        while (temp != null) {
+            System.out.println("\nNombre: " + temp.name + " (Nivel " + temp.level + ")");
+            temp.info.mostrarFicha();
+            temp = temp.next;
+        }
+    }
+}
+
+public class PokedexDemo {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        Pokedex pokedex = new Pokedex();
+
+        int opcion;
+
+        do {
+            System.out.println("\n--- Menú Pokedex ---");
+            System.out.println("1. Agregar Pokémon");
+            System.out.println("2. Eliminar Pokémon");
+            System.out.println("3. Buscar Pokémon");
+            System.out.println("4. Mostrar Pokedex");
+            System.out.println("5. Salir");
+            System.out.print("Seleccione una opción: ");
+            opcion = scanner.nextInt();
+            scanner.nextLine(); // Limpiar buffer
+
+            switch (opcion) {
+                case 1:
+                    System.out.print("Nombre del Pokémon: ");
+                    String nombre = scanner.nextLine();
+                    System.out.print("Nivel del Pokémon: ");
+                    int nivel = scanner.nextInt();
+                    scanner.nextLine();
+
+                    PokemonInfo info = new PokemonInfo();
+                    info.ingresarDatos(scanner);
+
+                    pokedex.addPokemon(nombre, nivel, info);
+                    break;
+
+                case 2:
+                    System.out.print("Nombre del Pokémon a eliminar: ");
+                    String eliminar = scanner.nextLine();
+                    pokedex.removePokemon(eliminar);
+                    break;
+
+                case 3:
+                    System.out.print("Nombre del Pokémon a buscar: ");
+                    String buscar = scanner.nextLine();
+                    boolean encontrado = pokedex.searchPokemon(buscar);
+                    System.out.println(encontrado
+                            ? buscar + " está en la Pokedex."
+                            : buscar + " no se encuentra en la Pokedex.");
+                    break;
+
+                case 4:
+                    pokedex.showPokedex();
+                    break;
+
+                case 5:
+                    System.out.println("¡Gracias por usar la Pokedex!");
+                    break;
+
+                default:
+                    System.out.println("Opción inválida. Intenta nuevamente.");
+            }
+
+        } while (opcion != 5);
+
+        scanner.close();
+    }
+}
