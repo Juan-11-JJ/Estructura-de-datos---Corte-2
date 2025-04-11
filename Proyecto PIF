@@ -1,0 +1,267 @@
+package Corte2;
+
+import java.util.*;
+import java.text.*;
+
+// Clase Tarea
+class Tarea {
+    String nombre;
+    String descripcion;
+    Date fechaLimite;
+    int prioridad; // 1 (Alta), 2 (Media), 3 (Baja)
+    boolean completada;
+
+    public Tarea(String nombre, String descripcion, Date fechaLimite, int prioridad) {
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.fechaLimite = fechaLimite;
+        this.prioridad = prioridad;
+        this.completada = false;
+    }
+
+    public String mostrarInfo() {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        return "\u001B[34mTarea:\u001B[0m " + nombre +
+               "\n  \u001B[36mDescripción:\u001B[0m " + descripcion +
+               "\n  \u001B[33mFecha límite:\u001B[0m " + sdf.format(fechaLimite) +
+               "\n  \u001B[35mPrioridad:\u001B[0m " + prioridad +
+               "\n  \u001B[32mEstado:\u001B[0m " + (completada ? "Completada" : "Pendiente") + "\n";
+    }
+}
+
+// Nodo de árbol binario para búsqueda de tareas
+class NodoTarea {
+    Tarea tarea;
+    NodoTarea izquierda, derecha;
+
+    public NodoTarea(Tarea tarea) {
+        this.tarea = tarea;
+        this.izquierda = null;
+        this.derecha = null;
+    }
+}
+
+// Árbol Binario de Búsqueda por nombre de tarea
+class ArbolTareas {
+    NodoTarea raiz;
+
+    public void insertar(Tarea tarea) {
+        raiz = insertarRec(raiz, tarea);
+    }
+
+    private NodoTarea insertarRec(NodoTarea raiz, Tarea tarea) {
+        if (raiz == null) return new NodoTarea(tarea);
+        if (tarea.nombre.compareToIgnoreCase(raiz.tarea.nombre) < 0)
+            raiz.izquierda = insertarRec(raiz.izquierda, tarea);
+        else
+            raiz.derecha = insertarRec(raiz.derecha, tarea);
+        return raiz;
+    }
+
+    public void enOrden(NodoTarea nodo) {
+        if (nodo != null) {
+            enOrden(nodo.izquierda);
+            System.out.println(nodo.tarea.mostrarInfo());
+            enOrden(nodo.derecha);
+        }
+    }
+}
+
+// Clase Usuario
+class Usuario {
+    String correo;
+    List<Tarea> tareas;
+    Stack<Tarea> historialTareas;
+    Queue<String> notificaciones;
+    int tareasDesdeUltimaPausa;
+
+    public Usuario(String correo) {
+        this.correo = correo;
+        this.tareas = new ArrayList<>();
+        this.historialTareas = new Stack<>();
+        this.notificaciones = new LinkedList<>();
+        this.tareasDesdeUltimaPausa = 0;
+    }
+
+    public void agregarTarea(Tarea tarea) {
+        tareas.add(tarea);
+        notificaciones.offer("✅ Tarea agregada: " + tarea.nombre);
+    }
+
+    public void completarTarea(String nombreTarea) {
+        for (Tarea t : tareas) {
+            if (t.nombre.equalsIgnoreCase(nombreTarea) && !t.completada) {
+                t.completada = true;
+                historialTareas.push(t);
+                notificaciones.offer("🎉 ¡Completaste la tarea: " + nombreTarea + "!");
+                tareasDesdeUltimaPausa++;
+                if (tareasDesdeUltimaPausa >= 3) {
+                    notificaciones.offer("⏸ Modo descanso activado. Tómate un pequeño descanso.");
+                    tareasDesdeUltimaPausa = 0;
+                }
+                return;
+            }
+        }
+        notificaciones.offer("⚠️ Tarea no encontrada o ya completada.");
+    }
+
+    public void modificarTarea(String nombreTarea, String nuevaDesc) {
+        for (Tarea t : tareas) {
+            if (t.nombre.equalsIgnoreCase(nombreTarea)) {
+                t.descripcion = nuevaDesc;
+                notificaciones.offer("✏️ Tarea modificada: " + nombreTarea);
+                return;
+            }
+        }
+        notificaciones.offer("⚠️ Tarea no encontrada.");
+    }
+
+    public void eliminarTarea(String nombreTarea) {
+        boolean eliminada = tareas.removeIf(t -> t.nombre.equalsIgnoreCase(nombreTarea));
+        if (eliminada) {
+            notificaciones.offer("🗑️ Tarea eliminada: " + nombreTarea);
+        } else {
+            notificaciones.offer("⚠️ Tarea no encontrada.");
+        }
+    }
+
+    public void mostrarTareas() {
+        if (tareas.isEmpty()) {
+            System.out.println("📭 No tienes tareas registradas.");
+            return;
+        }
+        tareas.sort(Comparator.comparing(t -> t.fechaLimite));
+        for (Tarea t : tareas) {
+            System.out.println(t.mostrarInfo());
+        }
+    }
+
+    public void progreso() {
+        long total = tareas.size();
+        long completadas = tareas.stream().filter(t -> t.completada).count();
+        System.out.println("📈 Progreso: " + completadas + "/" + total + " tareas completadas.");
+    }
+}
+
+// Clase Principal
+public class Proyecto_PIF {
+    static String[][] calendario = new String[5][7];
+
+    public static void main(String[] args) throws Exception {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("\u001B[1m\u001B[34mBienvenido a TASKMASTER PG\u001B[0m 🎓");
+        System.out.print("Ingrese su correo institucional: ");
+        String correo = sc.nextLine();
+        if (!correo.endsWith("@poligran.edu.co")) {
+            System.out.println("\u001B[31mCorreo no válido. Debe ser institucional.\u001B[0m");
+            return;
+        }
+        Usuario usuario = new Usuario(correo);
+        ArbolTareas arbol = new ArbolTareas();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+
+        while (true) {
+            System.out.println("\n\u001B[1m\u001B[36m=== MENÚ PRINCIPAL ===\u001B[0m");
+            System.out.println("1️  Agregar tarea\n2️  Ver tareas\n3️  Completar tarea\n4️  Modificar tarea\n5️  Eliminar tarea\n6️  Ver historial\n7️  Ver notificaciones\n8️  Ver tareas ordenadas (Árbol)\n9️  Ver progreso\n10 Compartir en redes\n1️1️ Ver calendario semanal\n0  Salir");
+            System.out.print("Seleccione una opción: ");
+            int opcion = sc.nextInt(); sc.nextLine();
+
+            switch (opcion) {
+                case 1:
+                    System.out.print("📌 Nombre: ");
+                    String nombre = sc.nextLine();
+                    System.out.print("📝 Descripción: ");
+                    String desc = sc.nextLine();
+                    System.out.print("📅 Fecha límite (dd/MM/yyyy): ");
+                    Date fecha = sdf.parse(sc.nextLine());
+                    System.out.print("⭐ Prioridad (1-Alta, 2-Media, 3-Baja): ");
+                    int prioridad = sc.nextInt(); sc.nextLine();
+                    Tarea nueva = new Tarea(nombre, desc, fecha, prioridad);
+                    usuario.agregarTarea(nueva);
+                    arbol.insertar(nueva);
+                    break;
+                case 2:
+                    usuario.mostrarTareas();
+                    break;
+                case 3:
+                    System.out.print("✅ Nombre de la tarea a completar: ");
+                    usuario.completarTarea(sc.nextLine());
+                    break;
+                case 4:
+                    System.out.print("✏️ Nombre de la tarea a modificar: ");
+                    String nomMod = sc.nextLine();
+                    System.out.print("📝 Nueva descripción: ");
+                    usuario.modificarTarea(nomMod, sc.nextLine());
+                    break;
+                case 5:
+                    System.out.print("🗑️ Nombre de la tarea a eliminar: ");
+                    usuario.eliminarTarea(sc.nextLine());
+                    break;
+                case 6:
+                    System.out.println("📜 Historial:");
+                    if (usuario.historialTareas.isEmpty()) {
+                        System.out.println("(Vacío)");
+                    } else {
+                        for (Tarea t : usuario.historialTareas)
+                            System.out.println("- " + t.nombre);
+                    }
+                    break;
+                case 7:
+                    System.out.println("🔔 Notificaciones:");
+                    if (usuario.notificaciones.isEmpty()) {
+                        System.out.println("(Sin notificaciones nuevas)");
+                    } else {
+                        while (!usuario.notificaciones.isEmpty())
+                            System.out.println(usuario.notificaciones.poll());
+                    }
+                    break;
+                case 8:
+                    System.out.println("🌳 Tareas ordenadas por nombre:");
+                    arbol.enOrden(arbol.raiz);
+                    break;
+                case 9:
+                    usuario.progreso();
+                    break;
+                case 10:
+                    System.out.print("📤 Tarea a compartir: ");
+                    String compartir = sc.nextLine();
+                    System.out.println("Has compartido tu progreso con: " + compartir);
+                    break;
+                 case 11:
+                     System.out.println("🗓️ Calendario semanal (por día de la semana):");
+                     String[] dias = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"};
+                     Map<String, List<Tarea>> tareasPorDia = new LinkedHashMap<>();
+                     for (String dia : dias) tareasPorDia.put(dia, new ArrayList<>());
+
+                     Calendar cal = Calendar.getInstance();
+                     for (Tarea t : usuario.tareas) {
+                         cal.setTime(t.fechaLimite);
+                         int diaSemana = cal.get(Calendar.DAY_OF_WEEK);
+                         int index = (diaSemana == 1) ? 6 : diaSemana - 2;
+                         if (index >= 0 && index < 7) {
+                             tareasPorDia.get(dias[index]).add(t);
+                         }
+                     }
+
+                     for (String dia : dias) {
+                         System.out.println("\n📅 " + dia + ":");
+                         List<Tarea> lista = tareasPorDia.get(dia);
+                         if (lista.isEmpty()) {
+                             System.out.println("  (Sin tareas)");
+                         } else {
+                             for (Tarea t : lista) {
+                                 System.out.println("  - " + t.nombre + (t.completada ? " ✅" : ""));
+                             }
+                         }
+                     }
+                     break;
+
+                case 0:
+                    System.out.println("👋 ¡Hasta luego y mucho éxito en tus tareas!");
+                    return;
+                default:
+                    System.out.println("⚠️ Opción inválida, por favor intente de nuevo.");
+            }
+        }
+    }
+}
