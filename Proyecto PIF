@@ -83,9 +83,22 @@ class Usuario {
         this.tareasDesdeUltimaPausa = 0;
     }
 
+    Map<String, List<Tarea>> tareasPorFecha = new HashMap<>();
+
     public void agregarTarea(Tarea tarea) {
+        for (Tarea t : tareas) {
+            if (t.nombre.equalsIgnoreCase(tarea.nombre)) {
+                String mensaje = "⚠️ Ya existe una tarea con ese nombre.";
+                notificaciones.offer(mensaje);
+                System.out.println(mensaje); // Mostrar advertencia inmediatamente
+                return;
+            }
+        }
         tareas.add(tarea);
+        String claveFecha = new SimpleDateFormat("dd/MM/yyyy").format(tarea.fechaLimite);
+        tareasPorFecha.computeIfAbsent(claveFecha, k -> new ArrayList<>()).add(tarea);
         notificaciones.offer("✅ Tarea agregada: " + tarea.nombre);
+        System.out.println("✅ Tarea agregada exitosamente.");
     }
 
     public void completarTarea(String nombreTarea) {
@@ -135,6 +148,19 @@ class Usuario {
             System.out.println(t.mostrarInfo());
         }
     }
+    
+    public void mostrarTareasPorFecha() {
+        if (tareasPorFecha.isEmpty()) {
+            System.out.println("📭 No hay tareas organizadas por fecha.");
+            return;
+        }
+        for (String fecha : tareasPorFecha.keySet()) {
+            System.out.println("\n📅 " + fecha + ":");
+            for (Tarea t : tareasPorFecha.get(fecha)) {
+                System.out.println("  - " + t.nombre + (t.completada ? " ✅" : ""));
+            }
+        }
+    }
 
     public void progreso() {
         long total = tareas.size();
@@ -167,19 +193,27 @@ public class Proyecto_PIF {
             int opcion = sc.nextInt(); sc.nextLine();
 
             switch (opcion) {
-                case 1:
-                    System.out.print("📌 Nombre: ");
-                    String nombre = sc.nextLine();
-                    System.out.print("📝 Descripción: ");
-                    String desc = sc.nextLine();
-                    System.out.print("📅 Fecha límite (dd/MM/yyyy): ");
-                    Date fecha = sdf.parse(sc.nextLine());
-                    System.out.print("⭐ Prioridad (1-Alta, 2-Media, 3-Baja): ");
-                    int prioridad = sc.nextInt(); sc.nextLine();
-                    Tarea nueva = new Tarea(nombre, desc, fecha, prioridad);
-                    usuario.agregarTarea(nueva);
-                    arbol.insertar(nueva);
+            case 1:
+                System.out.print("📌 Nombre: ");
+                String nombre = sc.nextLine();
+                System.out.print("📝 Descripción: ");
+                String desc = sc.nextLine();
+                System.out.print("📅 Fecha límite (dd/MM/yyyy): ");
+                Date fecha = sdf.parse(sc.nextLine());
+
+                // 🔒 Validacion de fecha
+                Date hoy = sdf.parse(sdf.format(new Date())); // Solo fecha, sin hora
+                if (fecha.before(hoy)) {
+                    System.out.println("⚠️ La fecha ingresada ya ha pasado. Intente con una fecha futura.");
                     break;
+                }
+
+                System.out.print("⭐ Prioridad (1-Alta, 2-Media, 3-Baja): ");
+                int prioridad = sc.nextInt(); sc.nextLine();
+                Tarea nueva = new Tarea(nombre, desc, fecha, prioridad);
+                usuario.agregarTarea(nueva);
+                arbol.insertar(nueva);
+                break;
                 case 2:
                     usuario.mostrarTareas();
                     break;
